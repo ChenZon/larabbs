@@ -2,5 +2,6 @@
 @section('title', '首页')
 
 @section('content')
-  <h1>welcome to home page!</h1>
+
+  <div class="title">welcome to home page!</div>
 @stop

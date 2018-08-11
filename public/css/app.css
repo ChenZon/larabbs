@@ -8491,3 +8491,9 @@ body {
   border-top: 1px solid #dcebf5;
 }
 
+.title {
+  color: gray;
+  text-align: center;
+  font-size: 24px;
+}
+
