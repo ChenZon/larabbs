@@ -147,8 +147,16 @@ body {
     }
 }
 .title{
+    display:block;
+    margin: 0 auto;
+    width:350px;
+    height:120px;
     text-align:center;
-    color:red;
+    padding-top:10px;
+    color:e0deda;
+    background-color:f6b0c7;
+   
+
 }
 
 /* Topic Show Page */
