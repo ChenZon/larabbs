@@ -10,33 +10,42 @@ class VerificationCodesController extends Controller
 {
     public function store(VerificationCodeRequest $request, EasySms $easySms)
     {
-        $phone = $request->phone;
+        $captchaData = \Cache::get($request->captcha_key);
 
-        
-        if (!app()->environment('production')) 
-        {
-   	 		$code = '1234';
-		}
-        else
-        {
-        	// 生成4位随机数，左侧补0
-       		 $code = str_pad(random_int(1, 9999), 4, 0, STR_PAD_LEFT);
-       		 
-        	try {
-	            $result = $easySms->send($phone, [
-	                'content'  => '【ISMTA实验室】温馨提示，您有一个关于官网-关于我们-进群的实验室任务未完成，如需帮助请及时与实验室管理员联系，谢谢^_^',
-	            ]);
-	        } catch (\Overtrue\EasySms\Exceptions\NoGatewayAvailableException $exception) {
-	            $message = $exception->getException('yunpian')->getMessage();
-	            return $this->response->errorInternal($message ?? '短信发送异常');
-	        }
+        if (!$captchaData) {
+            return $this->response->error('图片验证码已失效', 422);
         }
-	        
+
+        if (!hash_equals($captchaData['code'], $request->captcha_code)) {
+            // 验证错误就清除缓存
+            \Cache::forget($request->captcha_key);
+            return $this->response->errorUnauthorized('验证码错误');
+        }
+
+        $phone = $captchaData['phone'];
+
+        if (!app()->environment('production')) {
+            $code = '1234';
+        } else {
+            // 生成4位随机数，左侧补0
+            $code = str_pad(random_int(1, 9999), 4, 0, STR_PAD_LEFT);
+
+            try {
+                $result = $easySms->send($phone, [
+                    'content'  => '【ISMTA实验室】温馨提示，您有一个关于官网-关于我们-进群的实验室任务未完成，如需帮助请及时与实验室管理员联系，谢谢^_^',
+                ]);
+            } catch (\Overtrue\EasySms\Exceptions\NoGatewayAvailableException $exception) {
+                $message = $exception->getException('yunpian')->getMessage();
+                return $this->response->errorInternal($message ?? '短信发送异常');
+            }
+        }
 
         $key = 'verificationCode_'.str_random(15);
         $expiredAt = now()->addMinutes(10);
         // 缓存验证码 10分钟过期。
         \Cache::put($key, ['phone' => $phone, 'code' => $code], $expiredAt);
+        // 清除图片验证码缓存
+        \Cache::forget($request->captcha_key);
 
         return $this->response->array([
             'key' => $key,
